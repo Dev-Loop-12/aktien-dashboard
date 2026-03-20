@@ -333,7 +333,8 @@ var refreshTimer = null;
 
 // ===== PROXY FETCH =====
 async function proxyFetch(url) {
-  var cacheBust = url + (url.indexOf('?') >= 0 ? '&' : '?') + '_t=' + Date.now();
+  var sep = url.indexOf('?') >= 0 ? '&' : '?';
+  var cacheBust = url + sep + '_t=' + Date.now() + '_r=' + Math.random().toString(36).slice(2,8);
   var proxies = [
     function(u) { return 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u); },
     function(u) { return 'https://corsproxy.io/?' + encodeURIComponent(u); }
@@ -341,8 +342,8 @@ async function proxyFetch(url) {
   for (var i = 0; i < proxies.length; i++) {
     try {
       var c = new AbortController();
-      var t = setTimeout(function() { c.abort(); }, 7000);
-      var r = await fetch(proxies[i](cacheBust), { signal: c.signal });
+      var t = setTimeout(function() { c.abort(); }, 5000);
+      var r = await fetch(proxies[i](cacheBust), { signal: c.signal, cache: 'no-store' });
       clearTimeout(t);
       if (r.ok) return JSON.parse(await r.text());
     } catch(e) { continue; }
@@ -350,7 +351,7 @@ async function proxyFetch(url) {
   throw new Error('Fetch failed');
 }
 
-// Concurrency limiter — max N parallel fetches to avoid proxy throttling
+// Concurrency limiter
 function parallelLimit(tasks, limit) {
   return new Promise(function(resolve) {
     var results = new Array(tasks.length);
@@ -371,7 +372,54 @@ function parallelLimit(tasks, limit) {
 
 var YF = 'https://query1.finance.yahoo.com';
 
-// ===== EXCHANGE RATE =====
+// ===== BATCH FETCH (1 request for all symbols) =====
+async function fetchBatchQuotes(symbols) {
+  var url = YF + '/v7/finance/quote?symbols=' + symbols.map(encodeURIComponent).join(',');
+  var data = await proxyFetch(url);
+  if (!data || !data.quoteResponse || !data.quoteResponse.result) throw new Error('Batch unavailable');
+  var map = {};
+  data.quoteResponse.result.forEach(function(q) {
+    if (!q.symbol) return;
+    var prev = q.regularMarketPreviousClose;
+    var price = q.regularMarketPrice;
+    map[q.symbol] = {
+      symbol: q.symbol,
+      name: q.shortName || q.longName || q.symbol,
+      price: price,
+      previousClose: prev,
+      change: q.regularMarketChange != null ? q.regularMarketChange : (prev ? price - prev : 0),
+      changePercent: q.regularMarketChangePercent != null ? q.regularMarketChangePercent : (prev ? ((price - prev) / prev) * 100 : 0),
+      dayHigh: q.regularMarketDayHigh,
+      dayLow: q.regularMarketDayLow,
+      volume: q.regularMarketVolume,
+      marketCap: q.marketCap,
+      currency: q.currency,
+      exchange: q.fullExchangeName || q.exchangeName || '',
+      fiftyTwoWeekHigh: q.fiftyTwoWeekHigh,
+      fiftyTwoWeekLow: q.fiftyTwoWeekLow,
+      fiftyDayAverage: q.fiftyDayAverage,
+      twoHundredDayAverage: q.twoHundredDayAverage,
+      sparkline: []
+    };
+  });
+  return map;
+}
+
+async function fetchBatchSparklines(symbols) {
+  var url = YF + '/v8/finance/spark?symbols=' + symbols.map(encodeURIComponent).join(',') + '&range=1d&interval=5m&includePrePost=false';
+  var data = await proxyFetch(url);
+  if (!data || !data.spark || !data.spark.result) return {};
+  var map = {};
+  data.spark.result.forEach(function(item) {
+    if (!item.symbol || !item.response || !item.response[0]) return;
+    var r = item.response[0];
+    var cl = (r.indicators && r.indicators.quote && r.indicators.quote[0] && r.indicators.quote[0].close) || [];
+    map[item.symbol] = cl.filter(function(c) { return c != null; });
+  });
+  return map;
+}
+
+// ===== EXCHANGE RATE (fallback only) =====
 async function fetchExchangeRate() {
   var jobs = [
     proxyFetch(YF + '/v8/finance/chart/EURUSD=X?range=1d&interval=15m&includePrePost=false').catch(function() { return null; }),
@@ -383,6 +431,7 @@ async function fetchExchangeRate() {
   if (d2) { var r2 = d2.chart && d2.chart.result && d2.chart.result[0]; if (r2 && r2.meta) { var cadUsd = r2.meta.regularMarketPrice; if (eurUsdRate) cadEurRate = cadUsd * eurUsdRate; } }
 }
 
+// Individual quote fetch (fallback when batch API unavailable)
 async function fetchQuote(symbol) {
   var data = await proxyFetch(YF + '/v8/finance/chart/' + encodeURIComponent(symbol) + '?range=1d&interval=5m&includePrePost=false');
   var r = data && data.chart && data.chart.result && data.chart.result[0]; if (!r) throw new Error('No data');
@@ -426,35 +475,65 @@ async function loadData() {
   var bar = document.getElementById('loaderBar');
   var txt = document.getElementById('loaderText');
   btn.disabled = true; screen.classList.add('active');
-  bar.style.width = '0%'; txt.textContent = 'Lade Aktiendaten...';
-  var loaded = 0; quotesCache = {}; var total = ALL_SYMBOLS.length;
-  // Fetch exchange rates in parallel with stocks (not blocking)
-  var ratePromise = fetchExchangeRate();
-  var tasks = ALL_SYMBOLS.map(function(sym) {
-    return function() {
-      return fetchQuote(sym).then(function(q) {
-        loaded++; bar.style.width = (loaded / total * 100) + '%';
-        txt.textContent = loaded + ' von ' + total + ' Aktien geladen...';
-        return { symbol: sym, data: q };
-      }).catch(function(e) {
-        loaded++; bar.style.width = (loaded / total * 100) + '%';
-        return { symbol: sym, data: null, error: e.message };
+  bar.style.width = '5%'; txt.textContent = 'Lade Aktiendaten...';
+  quotesCache = {};
+
+  // Strategy 1: Batch API (ALL quotes in 1 request)
+  try {
+    var batchSyms = ALL_SYMBOLS.concat(['EURUSD=X', 'CADUSD=X']);
+    var batchData = await fetchBatchQuotes(batchSyms);
+    bar.style.width = '60%';
+    // Extract exchange rates from batch
+    var eurusd = batchData['EURUSD=X'];
+    if (eurusd && eurusd.price) eurUsdRate = 1 / eurusd.price;
+    var cadusd = batchData['CADUSD=X'];
+    if (cadusd && cadusd.price && eurUsdRate) cadEurRate = cadusd.price * eurUsdRate;
+    // Store stock quotes
+    ALL_SYMBOLS.forEach(function(sym) {
+      quotesCache[sym] = batchData[sym] || { symbol: sym, error: 'No data' };
+    });
+    txt.textContent = 'Lade Sparklines...';
+    // Show cards immediately (without sparklines)
+    renderTabs(); renderSummary(); renderStocks();
+    bar.style.width = '80%';
+    // Fetch sparklines async (non-blocking visual enhancement)
+    fetchBatchSparklines(ALL_SYMBOLS).then(function(sparkMap) {
+      Object.keys(sparkMap).forEach(function(sym) {
+        if (quotesCache[sym]) quotesCache[sym].sparkline = sparkMap[sym];
       });
-    };
-  });
-  var results = await parallelLimit(tasks, 6);
-  await ratePromise;
-  results.forEach(function(r) {
-    if (r.status === 'fulfilled') {
-      var val = r.value;
-      quotesCache[val.symbol] = val.data || { symbol: val.symbol, error: val.error || 'No data' };
-    }
-  });
-  renderTabs(); renderSummary(); renderStocks();
+      renderStocks();
+    }).catch(function() { /* sparklines optional */ });
+  } catch(batchErr) {
+    // Strategy 2: Individual fetches (fallback)
+    txt.textContent = 'Lade einzeln...';
+    var ratePromise = fetchExchangeRate();
+    var loaded = 0; var total = ALL_SYMBOLS.length;
+    var tasks = ALL_SYMBOLS.map(function(sym) {
+      return function() {
+        return fetchQuote(sym).then(function(q) {
+          loaded++; bar.style.width = (10 + loaded / total * 85) + '%';
+          txt.textContent = loaded + ' von ' + total + ' Aktien geladen...';
+          return { symbol: sym, data: q };
+        }).catch(function(e) {
+          loaded++; bar.style.width = (10 + loaded / total * 85) + '%';
+          return { symbol: sym, data: null, error: e.message };
+        });
+      };
+    });
+    var results = await parallelLimit(tasks, 10);
+    await ratePromise;
+    results.forEach(function(r) {
+      if (r.status === 'fulfilled') {
+        var val = r.value;
+        quotesCache[val.symbol] = val.data || { symbol: val.symbol, error: val.error || 'No data' };
+      }
+    });
+    renderTabs(); renderSummary(); renderStocks();
+  }
   document.getElementById('updateBadge').style.display = 'flex';
   updateTimeBadge();
   btn.disabled = false; bar.style.width = '100%';
-  setTimeout(function() { screen.classList.remove('active'); }, 300);
+  setTimeout(function() { screen.classList.remove('active'); }, 200);
 }
 
 function updateTimeBadge() {
@@ -463,29 +542,44 @@ function updateTimeBadge() {
   document.getElementById('lastUpdate').textContent = text;
 }
 
-// Quick refresh (no loading screen, just update prices)
+// Quick refresh (no loading screen)
 var quickRefreshCount = 0;
 async function quickRefresh() {
   try {
     quickRefreshCount++;
-    // Only refresh exchange rate every 3rd cycle
-    var rateP = (quickRefreshCount % 3 === 0) ? fetchExchangeRate() : Promise.resolve();
-    var tasks = ALL_SYMBOLS.map(function(sym) {
-      return function() {
-        return fetchQuote(sym).then(function(q) { return { symbol: sym, data: q }; })
-          .catch(function() { return { symbol: sym, data: null }; });
-      };
-    });
-    var results = await parallelLimit(tasks, 6);
-    await rateP;
-    results.forEach(function(r) {
-      if (r.status === 'fulfilled' && r.value.data) {
-        quotesCache[r.value.symbol] = r.value.data;
+    var includeFx = (quickRefreshCount % 3 === 0);
+    // Try batch first
+    try {
+      var syms = includeFx ? ALL_SYMBOLS.concat(['EURUSD=X', 'CADUSD=X']) : ALL_SYMBOLS;
+      var batchData = await fetchBatchQuotes(syms);
+      if (includeFx) {
+        var eu = batchData['EURUSD=X']; if (eu && eu.price) eurUsdRate = 1 / eu.price;
+        var ca = batchData['CADUSD=X']; if (ca && ca.price && eurUsdRate) cadEurRate = ca.price * eurUsdRate;
       }
-    });
+      ALL_SYMBOLS.forEach(function(sym) {
+        if (batchData[sym]) {
+          batchData[sym].sparkline = (quotesCache[sym] && quotesCache[sym].sparkline) || [];
+          quotesCache[sym] = batchData[sym];
+        }
+      });
+    } catch(e) {
+      // Fallback: individual fetches
+      var rateP = includeFx ? fetchExchangeRate() : Promise.resolve();
+      var tasks = ALL_SYMBOLS.map(function(sym) {
+        return function() {
+          return fetchQuote(sym).then(function(q) { return { symbol: sym, data: q }; })
+            .catch(function() { return { symbol: sym, data: null }; });
+        };
+      });
+      var results = await parallelLimit(tasks, 10);
+      await rateP;
+      results.forEach(function(r) {
+        if (r.status === 'fulfilled' && r.value.data) { quotesCache[r.value.symbol] = r.value.data; }
+      });
+    }
     renderSummary(); renderStocks();
     updateTimeBadge();
-  } catch(e) { /* silent fail on quick refresh */ }
+  } catch(e) { /* silent */ }
 }
 
 // ===== CURRENCY TOGGLE =====
@@ -622,13 +716,13 @@ function renderStocks() {
   grid.innerHTML = stocks.map(function(s) {
     var q = s.quote;
     if (!q || q.error || !q.price) {
-      return '<div class="stock-card" onclick="openDetail(\''+s.symbol+'\')">'
+      return '<div class="stock-card" onclick="openDetail(\''+s.symbol+'\')" onmouseenter="prefetchDetail(\''+s.symbol+'\')">' 
         +'<div class="card-unavailable"><div class="card-symbol-group"><div class="card-avatar" style="background:'+avatarBg(s.symbol)+'">'+s.symbol.slice(0,2)+'</div>'
         +'<div><div class="card-symbol">'+s.symbol+'</div><div class="card-name">'+s.industry+'</div></div></div>'
         +'<div style="margin-top:12px;color:var(--text-3);font-size:12px">Daten nicht verf\u00FCgbar</div></div></div>';
     }
     var up = (q.changePercent||0) >= 0;
-    return '<div class="stock-card" onclick="openDetail(\''+q.symbol+'\')">'
+    return '<div class="stock-card" onclick="openDetail(\''+q.symbol+'\')" onmouseenter="prefetchDetail(\''+q.symbol+'\')">' 
       +'<div class="card-row-top"><div class="card-symbol-group">'
       +'<div class="card-avatar" style="background:'+avatarBg(q.symbol)+'">'+q.symbol.slice(0,2)+'</div>'
       +'<div><div class="card-symbol">'+q.symbol+'</div><div class="card-name" title="'+q.name+'">'+q.name+'</div></div></div>'
@@ -1139,6 +1233,19 @@ function switchChartType(type) {
 }
 
 // ===== DETAIL VIEW =====
+var detailCache = {};
+
+function prefetchDetail(symbol) {
+  if (detailCache[symbol] && (Date.now() - detailCache[symbol].ts < 180000)) return;
+  Promise.allSettled([fetchChart(symbol), fetchSummary(symbol)]).then(function(res) {
+    detailCache[symbol] = {
+      chart: res[0].status === 'fulfilled' ? res[0].value : [],
+      summary: res[1].status === 'fulfilled' ? res[1].value : null,
+      ts: Date.now()
+    };
+  });
+}
+
 async function openDetail(symbol) {
   var overlay = document.getElementById('modalOverlay');
   var modal = document.getElementById('modalContent');
@@ -1162,9 +1269,16 @@ async function openDetail(symbol) {
     +'</div></div><button class="close-x" onclick="closeModal()">\u2715</button></div>'
     +'<div class="modal-body"><div style="text-align:center;padding:60px"><div class="loader-ring" style="margin:0 auto"></div><p style="margin-top:16px;color:var(--text-3);font-size:13px">Tiefenanalyse wird geladen...</p></div></div>';
   try {
-    var res = await Promise.allSettled([fetchChart(symbol), fetchSummary(symbol)]);
-    var hist = res[0].status==='fulfilled' ? res[0].value : [];
-    var summary = res[1].status==='fulfilled' ? res[1].value : null;
+    var cached = detailCache[symbol];
+    var hist, summary;
+    if (cached && (Date.now() - cached.ts < 180000)) {
+      hist = cached.chart; summary = cached.summary;
+    } else {
+      var res = await Promise.allSettled([fetchChart(symbol), fetchSummary(symbol)]);
+      hist = res[0].status==='fulfilled' ? res[0].value : [];
+      summary = res[1].status==='fulfilled' ? res[1].value : null;
+      detailCache[symbol] = { chart: hist, summary: summary, ts: Date.now() };
+    }
     modalHist = hist;
     var analysis = buildAnalysis(q, hist, summary);
     modalAnalysis = analysis;
@@ -1415,9 +1529,9 @@ function closeModal() {
 document.getElementById('modalOverlay').addEventListener('click', function(e) { if (e.target === e.currentTarget) closeModal(); });
 document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeModal(); });
 
-// Auto-refresh: quick price update every 15 sec, full reload every 3 min
+// Auto-refresh: quick price update every 15 sec, full reload every 2 min
 setInterval(quickRefresh, 15 * 1000);
-setInterval(loadData, 3 * 60 * 1000);
+setInterval(loadData, 2 * 60 * 1000);
 loadData();
 </script>
 </body>
