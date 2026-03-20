@@ -341,7 +341,7 @@ async function proxyFetch(url) {
   for (var i = 0; i < proxies.length; i++) {
     try {
       var c = new AbortController();
-      var t = setTimeout(function() { c.abort(); }, 12000);
+      var t = setTimeout(function() { c.abort(); }, 7000);
       var r = await fetch(proxies[i](cacheBust), { signal: c.signal });
       clearTimeout(t);
       if (r.ok) return JSON.parse(await r.text());
@@ -350,42 +350,56 @@ async function proxyFetch(url) {
   throw new Error('Fetch failed');
 }
 
+// Concurrency limiter — max N parallel fetches to avoid proxy throttling
+function parallelLimit(tasks, limit) {
+  return new Promise(function(resolve) {
+    var results = new Array(tasks.length);
+    var running = 0, idx = 0, done = 0;
+    function next() {
+      while (running < limit && idx < tasks.length) {
+        (function(i) {
+          running++;
+          tasks[i]().then(function(v) { results[i] = { status:'fulfilled', value:v }; })
+            .catch(function(e) { results[i] = { status:'rejected', reason:e }; })
+            .finally(function() { running--; done++; if (done === tasks.length) resolve(results); else next(); });
+        })(idx++);
+      }
+    }
+    next();
+  });
+}
+
 var YF = 'https://query1.finance.yahoo.com';
 
 // ===== EXCHANGE RATE =====
 async function fetchExchangeRate() {
-  try {
-    var data = await proxyFetch(YF + '/v8/finance/chart/EURUSD=X?range=1d&interval=1m&includePrePost=false');
-    var r = data && data.chart && data.chart.result && data.chart.result[0];
-    if (r && r.meta && r.meta.regularMarketPrice) {
-      eurUsdRate = 1 / r.meta.regularMarketPrice;
-    }
-  } catch(e) { /* keep previous rate */ }
-  try {
-    var data2 = await proxyFetch(YF + '/v8/finance/chart/CADEUR=X?range=1d&interval=1m&includePrePost=false');
-    var r2 = data2 && data2.chart && data2.chart.result && data2.chart.result[0];
-    if (r2 && r2.meta && r2.meta.regularMarketPrice) {
-      cadEurRate = r2.meta.regularMarketPrice;
-    }
-  } catch(e) { /* keep previous rate */ }
+  var jobs = [
+    proxyFetch(YF + '/v8/finance/chart/EURUSD=X?range=1d&interval=15m&includePrePost=false').catch(function() { return null; }),
+    proxyFetch(YF + '/v8/finance/chart/CADUSD=X?range=1d&interval=15m&includePrePost=false').catch(function() { return null; })
+  ];
+  var res = await Promise.all(jobs);
+  var d1 = res[0], d2 = res[1];
+  if (d1) { var r = d1.chart && d1.chart.result && d1.chart.result[0]; if (r && r.meta) eurUsdRate = 1 / r.meta.regularMarketPrice; }
+  if (d2) { var r2 = d2.chart && d2.chart.result && d2.chart.result[0]; if (r2 && r2.meta) { var cadUsd = r2.meta.regularMarketPrice; if (eurUsdRate) cadEurRate = cadUsd * eurUsdRate; } }
 }
 
 async function fetchQuote(symbol) {
-  var data = await proxyFetch(YF + '/v8/finance/chart/' + encodeURIComponent(symbol) + '?range=5d&interval=15m&includePrePost=false');
+  var data = await proxyFetch(YF + '/v8/finance/chart/' + encodeURIComponent(symbol) + '?range=1d&interval=5m&includePrePost=false');
   var r = data && data.chart && data.chart.result && data.chart.result[0]; if (!r) throw new Error('No data');
   var m = r.meta, cl = (r.indicators && r.indicators.quote && r.indicators.quote[0] && r.indicators.quote[0].close) || [];
   var last = cl.filter(function(c) { return c != null; }).pop() || m.regularMarketPrice;
-  var prev = m.chartPreviousClose || m.previousClose;
-  var intra = cl;
+  var price = m.regularMarketPrice || last;
+  var prev = m.previousClose || m.chartPreviousClose;
   return {
     symbol: m.symbol || symbol, name: m.shortName || m.longName || symbol,
-    price: m.regularMarketPrice || last, previousClose: prev,
-    change: (m.regularMarketPrice || last) - prev, changePercent: prev ? (((m.regularMarketPrice || last) - prev) / prev) * 100 : 0,
+    price: price, previousClose: prev,
+    change: prev ? price - prev : 0,
+    changePercent: prev ? ((price - prev) / prev) * 100 : 0,
     dayHigh: m.regularMarketDayHigh, dayLow: m.regularMarketDayLow,
     volume: m.regularMarketVolume, marketCap: m.marketCap, currency: m.currency,
     exchange: m.exchangeName, fiftyTwoWeekHigh: m.fiftyTwoWeekHigh, fiftyTwoWeekLow: m.fiftyTwoWeekLow,
     fiftyDayAverage: m.fiftyDayAverage, twoHundredDayAverage: m.twoHundredDayAverage,
-    sparkline: intra.filter(function(c) { return c != null; })
+    sparkline: cl.filter(function(c) { return c != null; })
   };
 }
 
@@ -412,17 +426,24 @@ async function loadData() {
   var bar = document.getElementById('loaderBar');
   var txt = document.getElementById('loaderText');
   btn.disabled = true; screen.classList.add('active');
-  bar.style.width = '0%'; txt.textContent = 'Lade Wechselkurs & Aktiendaten...';
-  await fetchExchangeRate();
+  bar.style.width = '0%'; txt.textContent = 'Lade Aktiendaten...';
   var loaded = 0; quotesCache = {}; var total = ALL_SYMBOLS.length;
-  var results = await Promise.allSettled(ALL_SYMBOLS.map(async function(sym) {
-    try {
-      var q = await fetchQuote(sym); loaded++;
-      bar.style.width = (loaded / total * 100) + '%';
-      txt.textContent = loaded + ' von ' + total + ' Aktien geladen...';
-      return { symbol: sym, data: q };
-    } catch (e) { loaded++; bar.style.width = (loaded / total * 100) + '%'; return { symbol: sym, data: null, error: e.message }; }
-  }));
+  // Fetch exchange rates in parallel with stocks (not blocking)
+  var ratePromise = fetchExchangeRate();
+  var tasks = ALL_SYMBOLS.map(function(sym) {
+    return function() {
+      return fetchQuote(sym).then(function(q) {
+        loaded++; bar.style.width = (loaded / total * 100) + '%';
+        txt.textContent = loaded + ' von ' + total + ' Aktien geladen...';
+        return { symbol: sym, data: q };
+      }).catch(function(e) {
+        loaded++; bar.style.width = (loaded / total * 100) + '%';
+        return { symbol: sym, data: null, error: e.message };
+      });
+    };
+  });
+  var results = await parallelLimit(tasks, 6);
+  await ratePromise;
   results.forEach(function(r) {
     if (r.status === 'fulfilled') {
       var val = r.value;
@@ -431,32 +452,39 @@ async function loadData() {
   });
   renderTabs(); renderSummary(); renderStocks();
   document.getElementById('updateBadge').style.display = 'flex';
-  document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('de-DE');
-  if (eurUsdRate) {
-    document.getElementById('lastUpdate').textContent += ' | 1\u20AC = $' + (1/eurUsdRate).toFixed(4);
-  }
+  updateTimeBadge();
   btn.disabled = false; bar.style.width = '100%';
   setTimeout(function() { screen.classList.remove('active'); }, 300);
 }
 
+function updateTimeBadge() {
+  var text = new Date().toLocaleTimeString('de-DE');
+  if (eurUsdRate) text += ' | 1\u20AC = $' + (1/eurUsdRate).toFixed(4);
+  document.getElementById('lastUpdate').textContent = text;
+}
+
 // Quick refresh (no loading screen, just update prices)
+var quickRefreshCount = 0;
 async function quickRefresh() {
   try {
-    await fetchExchangeRate();
-    var results = await Promise.allSettled(ALL_SYMBOLS.map(async function(sym) {
-      try { return { symbol: sym, data: await fetchQuote(sym) }; }
-      catch(e) { return { symbol: sym, data: null }; }
-    }));
+    quickRefreshCount++;
+    // Only refresh exchange rate every 3rd cycle
+    var rateP = (quickRefreshCount % 3 === 0) ? fetchExchangeRate() : Promise.resolve();
+    var tasks = ALL_SYMBOLS.map(function(sym) {
+      return function() {
+        return fetchQuote(sym).then(function(q) { return { symbol: sym, data: q }; })
+          .catch(function() { return { symbol: sym, data: null }; });
+      };
+    });
+    var results = await parallelLimit(tasks, 6);
+    await rateP;
     results.forEach(function(r) {
       if (r.status === 'fulfilled' && r.value.data) {
         quotesCache[r.value.symbol] = r.value.data;
       }
     });
     renderSummary(); renderStocks();
-    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('de-DE');
-    if (eurUsdRate) {
-      document.getElementById('lastUpdate').textContent += ' | 1\u20AC = $' + (1/eurUsdRate).toFixed(4);
-    }
+    updateTimeBadge();
   } catch(e) { /* silent fail on quick refresh */ }
 }
 
@@ -1387,9 +1415,9 @@ function closeModal() {
 document.getElementById('modalOverlay').addEventListener('click', function(e) { if (e.target === e.currentTarget) closeModal(); });
 document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeModal(); });
 
-// Auto-refresh: full reload every 5 min, quick refresh every 30 sec
-setInterval(quickRefresh, 30 * 1000);
-setInterval(loadData, 5 * 60 * 1000);
+// Auto-refresh: quick price update every 15 sec, full reload every 3 min
+setInterval(quickRefresh, 15 * 1000);
+setInterval(loadData, 3 * 60 * 1000);
 loadData();
 </script>
 </body>
