@@ -201,7 +201,11 @@
     .ct-btn.active{background:var(--bg-4);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.2)}
     .ct-btn:hover:not(.active){color:var(--text-2)}
     .chart-change-info{font-size:13px;font-weight:600;margin-bottom:8px;min-height:20px}
-    .chart-container{height:400px;position:relative}
+    .chart-container{height:500px;position:relative}
+    .iv-group{display:flex;gap:2px;background:var(--bg-3);border-radius:var(--radius-xs);padding:2px;border:1px solid var(--border)}
+    .iv-btn{padding:5px 10px;border:none;background:transparent;color:var(--text-3);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;border-radius:4px;transition:all .15s}
+    .iv-btn.active{background:var(--bg-4);color:var(--blue);box-shadow:0 1px 3px rgba(0,0,0,.2)}
+    .iv-btn:hover:not(.active){color:var(--text-2)}
     .session-legend{display:flex;align-items:center;gap:14px;margin-top:8px;font-size:11px;color:var(--text-3)}
     .session-dot{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:4px}
 
@@ -365,9 +369,10 @@
       .setup-grid{grid-template-columns:1fr 1fr}
       .pie-verdict{flex-direction:column;align-items:center}
       .pie-wrap{width:140px;height:140px}
-      .chart-container{height:300px}
+      .chart-container{height:340px}
       .chart-toolbar{flex-direction:column;align-items:stretch}
       .tf-group{overflow-x:auto}
+      .iv-group{overflow-x:auto}
       .pf-positions{grid-template-columns:1fr}
       .session-stats{grid-template-columns:1fr}
       .search-wrap{max-width:100%;order:-1;width:100%}
@@ -608,7 +613,9 @@ var modalHist = null;
 var modalAnalysis = null;
 var currentRange = '6mo';
 var currentChartType = 'line';
+var currentInterval = null;
 var chartCache = {};
+var chartStreamTimer = null;
 var detailCache = {};
 var quickRefreshCount = 0;
 var currentMainTab = 'home';
@@ -801,13 +808,15 @@ async function fetchQuote(symbol) {
 // ============================================================
 // CHART DATA (multi-timeframe)
 // ============================================================
-var RANGE_INTERVALS = { '1d':'5m', '5d':'15m', '1mo':'30m', '6mo':'1d', '1y':'1d', '5y':'1wk', 'max':'1mo' };
+var RANGE_INTERVALS = { '1d':'1m', '5d':'5m', '1mo':'30m', '6mo':'1d', '1y':'1d', '5y':'1wk', 'max':'1mo' };
 var RANGE_LABELS = { '1d':'1 Tag', '5d':'5 Tage', '1mo':'1 Monat', '6mo':'6 Monate', '1y':'1 Jahr', '5y':'5 Jahre', 'max':'Gesamt' };
 
-async function fetchChartRange(symbol, range) {
-  var key = symbol + '_' + range;
-  if (chartCache[key] && (Date.now() - chartCache[key].ts < 180000)) return chartCache[key].data;
-  var interval = RANGE_INTERVALS[range] || '1d';
+async function fetchChartRange(symbol, range, customInterval) {
+  var interval = customInterval || RANGE_INTERVALS[range] || '1d';
+  var key = symbol + '_' + range + '_' + interval;
+  var isIntra = (range === '1d' || range === '5d');
+  var cacheTTL = isIntra ? 0 : (range === '1mo' ? 60000 : 120000);
+  if (cacheTTL > 0 && chartCache[key] && (Date.now() - chartCache[key].ts < cacheTTL)) return chartCache[key].data;
   var inclPre = (range === '1d') ? 'true' : 'false';
   var url = YF + '/v8/finance/chart/' + encodeURIComponent(symbol) + '?range=' + range + '&interval=' + interval + '&includePrePost=' + inclPre;
   var data = await proxyFetch(url);
@@ -917,15 +926,16 @@ async function quickRefresh() {
     updateStockCards();
     // Update modal if open
     updateModalPrices();
-    // Chart sync: if modal is open on 1D, refresh chart data
-    if (modalSymbol && currentRange === '1d' && tvMainSeries && tvChart) {
-      chartCache[modalSymbol + '_1d'] = null; // Invalidate 1D cache
-      fetchChartRange(modalSymbol, '1d').then(function(data) {
+    // Chart full sync every 30 cycles (5 min) for data consistency
+    if (modalSymbol && tvMainSeries && tvChart && refreshCycle % 30 === 0) {
+      fetchChartRange(modalSymbol, currentRange, currentInterval).then(function(data) {
         if (!data || !data.length || !tvMainSeries || !tvChart || modalSymbol === null) return;
+        var isIntraday = (currentRange === '1d' || currentRange === '5d');
         var seen = {};
         var chartData = data.map(function(d) {
-          var t = d.time;
-          return { time: t, open: d.open || d.close, high: d.high || d.close, low: d.low || d.close, close: d.close, volume: d.volume || 0, rawTime: d.time };
+          var t = toChartTime(d.time, isIntraday);
+          if (!isIntraday) { if (seen[t]) return null; seen[t] = true; }
+          return { time: t, open: d.open || d.close, high: d.high || d.close, low: d.low || d.close, close: d.close, volume: d.volume || 0 };
         }).filter(function(d) { return d !== null; });
         if (currentChartType === 'candle') {
           tvMainSeries.setData(chartData.map(function(d) { return { time: d.time, open: d.open, high: d.high, low: d.low, close: d.close }; }));
@@ -934,7 +944,8 @@ async function quickRefresh() {
         }
         if (tvVolumeSeries) {
           tvVolumeSeries.setData(chartData.map(function(d) {
-            return { time: d.time, value: d.volume, color: getSessionColor(d.rawTime, '1d') };
+            var vc = (d.close >= d.open) ? 'rgba(38,166,154,0.5)' : 'rgba(239,83,80,0.5)';
+            return { time: d.time, value: d.volume, color: vc };
           }));
         }
       }).catch(function() {});
@@ -1672,7 +1683,7 @@ function toggleSession(name) {
   if (panel) panel.className = 'session-panel' + ((sessionToggles.asia || sessionToggles.london || sessionToggles.ny) ? ' show' : '');
   // Reload chart to show/hide session coloring and render session stats
   if (modalSymbol && currentRange === '1d') {
-    loadTvChart(modalSymbol, currentRange, currentChartType);
+    loadTvChart(modalSymbol, currentRange, currentChartType, currentInterval);
   }
 }
 
@@ -1689,9 +1700,10 @@ function toChartTime(unixSec, isIntraday) {
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 
-async function loadTvChart(symbol, range, chartType) {
-  currentRange = range; currentChartType = chartType;
-  document.querySelectorAll('.tf-btn').forEach(function(b) { b.classList.toggle('active', b.dataset.range === range); });
+async function loadTvChart(symbol, range, chartType, customInterval) {
+  currentRange = range; currentChartType = chartType; currentInterval = customInterval || null;
+  document.querySelectorAll('.tf-btn').forEach(function(b) { b.classList.toggle('active', !customInterval && b.dataset.range === range); });
+  document.querySelectorAll('.iv-btn').forEach(function(b) { b.classList.toggle('active', !!customInterval && b.dataset.interval === customInterval); });
   document.querySelectorAll('.ct-btn').forEach(function(b) { b.classList.toggle('active', b.dataset.type === chartType); });
   var leg = document.getElementById('sessionLegend');
   if (leg) leg.style.display = range === '1d' ? 'flex' : 'none';
@@ -1701,19 +1713,21 @@ async function loadTvChart(symbol, range, chartType) {
   if (spEl && range !== '1d') spEl.className = 'session-panel';
   var container = document.getElementById('tvChartContainer');
   if (!container) return;
-  var data = await fetchChartRange(symbol, range);
+  var data = await fetchChartRange(symbol, range, customInterval);
   if (!data || data.length === 0) { container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-3)">Keine Daten</div>'; return; }
   if (tvChart) { tvChart.remove(); tvChart = null; }
   var isIntraday = (range === '1d' || range === '5d');
-  var chartH = container.clientWidth < 600 ? 300 : 400;
+  var chartH = container.clientWidth < 600 ? 340 : 500;
   tvChart = LightweightCharts.createChart(container, {
     width: container.clientWidth, height: chartH,
-    layout: { background: { type: 'solid', color: '#111827' }, textColor: '#94a3b8', fontFamily: 'Inter, sans-serif' },
-    grid: { vertLines: { color: '#1e293b' }, horzLines: { color: '#1e293b' } },
-    rightPriceScale: { borderColor: '#334155', scaleMargins: { top: 0.05, bottom: 0.2 } },
-    timeScale: { borderColor: '#334155', timeVisible: isIntraday, secondsVisible: false, rightOffset: 5 },
-    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
-    handleScroll: true, handleScale: true
+    layout: { background: { type: 'solid', color: '#131722' }, textColor: '#787b86', fontFamily: 'Inter, -apple-system, sans-serif', fontSize: 12 },
+    grid: { vertLines: { color: '#1e222d', style: LightweightCharts.LineStyle.Solid }, horzLines: { color: '#1e222d', style: LightweightCharts.LineStyle.Solid } },
+    rightPriceScale: { borderColor: '#2a2e39', scaleMargins: { top: 0.02, bottom: 0.18 }, autoScale: true, alignLabels: true },
+    timeScale: { borderColor: '#2a2e39', timeVisible: isIntraday, secondsVisible: false, rightOffset: 8, barSpacing: isIntraday ? 3 : 6, minBarSpacing: 1 },
+    crosshair: { mode: LightweightCharts.CrosshairMode.Normal, vertLine: { color: '#758696', width: 1, style: LightweightCharts.LineStyle.Dashed, labelBackgroundColor: '#2962ff' }, horzLine: { color: '#758696', width: 1, style: LightweightCharts.LineStyle.Dashed, labelBackgroundColor: '#2962ff' } },
+    handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
+    handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
+    watermark: { visible: true, fontSize: 48, horzAlign: 'center', vertAlign: 'center', color: 'rgba(255,255,255,0.04)', text: symbol }
   });
   var seen = {};
   var chartData = data.map(function(d) {
@@ -1724,17 +1738,20 @@ async function loadTvChart(symbol, range, chartType) {
   var isUp = chartData.length > 1 && chartData[chartData.length-1].close >= chartData[0].close;
   if (chartType === 'candle') {
     tvMainSeries = tvChart.addCandlestickSeries({
-      upColor: '#10b981', downColor: '#ef4444',
-      borderUpColor: '#10b981', borderDownColor: '#ef4444',
-      wickUpColor: '#10b981', wickDownColor: '#ef4444'
+      upColor: '#26a69a', downColor: '#ef5350',
+      borderUpColor: '#26a69a', borderDownColor: '#ef5350',
+      wickUpColor: '#26a69a', wickDownColor: '#ef5350',
+      priceLineVisible: true, priceLineWidth: 1, priceLineColor: '#2962ff', priceLineStyle: LightweightCharts.LineStyle.Dashed,
+      lastValueVisible: true
     });
     tvMainSeries.setData(chartData.map(function(d) { return { time: d.time, open: d.open, high: d.high, low: d.low, close: d.close }; }));
   } else {
     tvMainSeries = tvChart.addAreaSeries({
-      lineColor: isUp ? '#10b981' : '#ef4444', lineWidth: 2,
-      topColor: isUp ? 'rgba(16,185,129,0.18)' : 'rgba(239,68,68,0.18)',
-      bottomColor: isUp ? 'rgba(16,185,129,0.02)' : 'rgba(239,68,68,0.02)',
-      lastValueVisible: true, priceLineVisible: true
+      lineColor: isUp ? '#26a69a' : '#ef5350', lineWidth: 2,
+      topColor: isUp ? 'rgba(38,166,154,0.28)' : 'rgba(239,83,80,0.28)',
+      bottomColor: isUp ? 'rgba(38,166,154,0.02)' : 'rgba(239,83,80,0.02)',
+      lastValueVisible: true, priceLineVisible: true, priceLineWidth: 1, priceLineColor: '#2962ff', priceLineStyle: LightweightCharts.LineStyle.Dashed,
+      crosshairMarkerVisible: true, crosshairMarkerRadius: 4
     });
     tvMainSeries.setData(chartData.map(function(d) { return { time: d.time, value: d.close }; }));
   }
@@ -1744,7 +1761,8 @@ async function loadTvChart(symbol, range, chartType) {
   });
   tvChart.priceScale('volume').applyOptions({ scaleMargins: { top: 0.85, bottom: 0 } });
   tvVolumeSeries.setData(chartData.map(function(d) {
-    return { time: d.time, value: d.volume, color: getSessionColor(d.rawTime, range) };
+    var volColor = (d.close >= d.open) ? 'rgba(38,166,154,0.5)' : 'rgba(239,83,80,0.5)';
+    return { time: d.time, value: d.volume, color: volColor };
   }));
   tvChart.timeScale().fitContent();
   if (tvResizer) tvResizer.disconnect();
@@ -1755,8 +1773,11 @@ async function loadTvChart(symbol, range, chartType) {
   var firstClose = chartData[0].close;
   var lastClose = chartData[chartData.length-1].close;
   var pctChange = ((lastClose - firstClose) / firstClose) * 100;
+  var intervalLabel = customInterval ? customInterval.toUpperCase() : RANGE_LABELS[range];
   var infoEl = document.getElementById('chartChangeInfo');
-  if (infoEl) infoEl.innerHTML = '<span style="color:' + (pctChange >= 0 ? 'var(--green)' : 'var(--red)') + ';font-weight:700">' + (pctChange >= 0 ? '+' : '') + pctChange.toFixed(2) + '%</span> <span style="color:var(--text-3)">(' + RANGE_LABELS[range] + ')</span>';
+  if (infoEl) infoEl.innerHTML = '<span style="color:' + (pctChange >= 0 ? 'var(--green)' : 'var(--red)') + ';font-weight:700">' + (pctChange >= 0 ? '+' : '') + pctChange.toFixed(2) + '%</span> <span style="color:var(--text-3)">(' + intervalLabel + ')</span>';
+  // Start real-time chart streaming for intraday
+  startChartStream();
   // Session analysis
   if (range === '1d' && (sessionToggles.asia || sessionToggles.london || sessionToggles.ny)) {
     renderSessionStats(data);
@@ -1813,6 +1834,43 @@ function renderSessionStats(data) {
   });
   html += '</div>';
   panel.innerHTML = html;
+}
+
+// ============================================================
+// CHART STREAMING (simulated real-time via rapid polling)
+// ============================================================
+function startChartStream() {
+  stopChartStream();
+  if (!modalSymbol) return;
+  var isIntra = (currentRange === '1d' || currentRange === '5d') || currentInterval;
+  if (!isIntra) return;
+  chartStreamTimer = setInterval(function() {
+    if (!modalSymbol || !tvMainSeries || !tvChart) { stopChartStream(); return; }
+    var sym = modalSymbol;
+    var range = currentRange;
+    var ci = currentInterval;
+    fetchChartRange(sym, range, ci).then(function(data) {
+      if (!data || !data.length || !tvMainSeries || !tvChart || modalSymbol !== sym) return;
+      var isId = (range === '1d' || range === '5d');
+      var recent = data.slice(-5);
+      recent.forEach(function(d) {
+        var t = toChartTime(d.time, isId);
+        if (currentChartType === 'candle') {
+          tvMainSeries.update({ time: t, open: d.open || d.close, high: d.high || d.close, low: d.low || d.close, close: d.close });
+        } else {
+          tvMainSeries.update({ time: t, value: d.close });
+        }
+        if (tvVolumeSeries) {
+          var vc = ((d.close || 0) >= (d.open || d.close)) ? 'rgba(38,166,154,0.5)' : 'rgba(239,83,80,0.5)';
+          tvVolumeSeries.update({ time: t, value: d.volume || 0, color: vc });
+        }
+      });
+    }).catch(function() {});
+  }, 3000);
+}
+
+function stopChartStream() {
+  if (chartStreamTimer) { clearInterval(chartStreamTimer); chartStreamTimer = null; }
 }
 
 // ============================================================
@@ -2104,6 +2162,14 @@ function renderModal(symbol, q, hist, a) {
 
   h += '<div class="chart-section">'
     +'<div class="chart-toolbar">'
+    +'<div class="iv-group">'
+    +'<button class="iv-btn" data-interval="1m" onclick="loadTvChart(\''+symbol+'\',\'1d\',currentChartType,\'1m\')">1m</button>'
+    +'<button class="iv-btn" data-interval="2m" onclick="loadTvChart(\''+symbol+'\',\'1d\',currentChartType,\'2m\')">2m</button>'
+    +'<button class="iv-btn" data-interval="5m" onclick="loadTvChart(\''+symbol+'\',\'5d\',currentChartType,\'5m\')">5m</button>'
+    +'<button class="iv-btn" data-interval="15m" onclick="loadTvChart(\''+symbol+'\',\'1mo\',currentChartType,\'15m\')">15m</button>'
+    +'<button class="iv-btn" data-interval="30m" onclick="loadTvChart(\''+symbol+'\',\'1mo\',currentChartType,\'30m\')">30m</button>'
+    +'<button class="iv-btn" data-interval="1h" onclick="loadTvChart(\''+symbol+'\',\'6mo\',currentChartType,\'60m\')">1h</button>'
+    +'</div>'
     +'<div class="tf-group">'
     +'<button class="tf-btn" data-range="1d" onclick="loadTvChart(\''+symbol+'\',\'1d\',currentChartType)">1T</button>'
     +'<button class="tf-btn" data-range="5d" onclick="loadTvChart(\''+symbol+'\',\'5d\',currentChartType)">5T</button>'
@@ -2114,8 +2180,8 @@ function renderModal(symbol, q, hist, a) {
     +'<button class="tf-btn" data-range="max" onclick="loadTvChart(\''+symbol+'\',\'max\',currentChartType)">Max</button>'
     +'</div>'
     +'<div class="ct-group">'
-    +'<button class="ct-btn active" data-type="line" onclick="loadTvChart(\''+symbol+'\',currentRange,\'line\')">&#128200; Linie</button>'
-    +'<button class="ct-btn" data-type="candle" onclick="loadTvChart(\''+symbol+'\',currentRange,\'candle\')">&#128293; Kerzen</button>'
+    +'<button class="ct-btn active" data-type="line" onclick="loadTvChart(\''+symbol+'\',currentRange,\'line\',currentInterval)">&#128200; Linie</button>'
+    +'<button class="ct-btn" data-type="candle" onclick="loadTvChart(\''+symbol+'\',currentRange,\'candle\',currentInterval)">&#128293; Kerzen</button>'
     +'</div></div>'
     +'<div class="chart-change-info" id="chartChangeInfo"></div>'
     +'<div class="chart-container" id="tvChartContainer"></div>'
@@ -2491,6 +2557,7 @@ function setDeviceMode(mode) {
 // MODAL CLOSE
 // ============================================================
 function closeModal() {
+  stopChartStream();
   document.getElementById('modalOverlay').classList.remove('active');
   document.body.classList.remove('no-scroll');
   if (tvChart) { tvChart.remove(); tvChart = null; }
