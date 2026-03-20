@@ -440,6 +440,161 @@
     body.forced-mobile .metrics-strip{grid-template-columns:repeat(2,1fr)}
     body.forced-desktop .stock-grid{grid-template-columns:repeat(auto-fill,minmax(310px,1fr))}
     body.forced-desktop .page{max-width:1440px}
+
+    /* ============================================ */
+    /* TRADINGVIEW FULL LAYOUT                      */
+    /* ============================================ */
+    .tv-view{display:none;position:fixed;top:60px;left:0;right:0;bottom:0;z-index:50;background:#131722;flex-direction:column}
+    .tv-view.active{display:flex}
+
+    /* TV Top Bar */
+    .tv-topbar{display:flex;align-items:center;gap:1px;background:#1e222d;border-bottom:1px solid #2a2e39;height:42px;flex-shrink:0;padding:0 4px;overflow-x:auto;scrollbar-width:none}
+    .tv-topbar::-webkit-scrollbar{display:none}
+    .tv-topbar-group{display:flex;align-items:center;gap:1px;padding:0 6px;border-right:1px solid #2a2e39;height:100%}
+    .tv-topbar-group:last-child{border-right:none}
+    .tv-sym-btn{display:flex;align-items:center;gap:6px;padding:4px 12px;background:transparent;border:none;color:#d1d4dc;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;border-radius:4px;height:32px;white-space:nowrap}
+    .tv-sym-btn:hover{background:#2a2e39}
+    .tv-sym-name{font-size:11px;color:#787b86;font-weight:400;max-width:120px;overflow:hidden;text-overflow:ellipsis}
+    .tv-interval-btn{padding:4px 10px;background:transparent;border:none;color:#787b86;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;border-radius:4px;height:28px;white-space:nowrap}
+    .tv-interval-btn:hover{color:#d1d4dc;background:#2a2e39}
+    .tv-interval-btn.active{color:#2962ff;background:rgba(41,98,255,0.12)}
+    .tv-charttype-btn{padding:4px 8px;background:transparent;border:none;color:#787b86;cursor:pointer;border-radius:4px;height:28px;display:flex;align-items:center;justify-content:center}
+    .tv-charttype-btn:hover{color:#d1d4dc;background:#2a2e39}
+    .tv-charttype-btn.active{color:#2962ff}
+    .tv-charttype-btn svg{width:18px;height:18px;fill:currentColor}
+    .tv-indicator-btn{padding:4px 12px;background:transparent;border:none;color:#787b86;font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;border-radius:4px;height:28px;display:flex;align-items:center;gap:5px;white-space:nowrap}
+    .tv-indicator-btn:hover{color:#d1d4dc;background:#2a2e39}
+    .tv-indicator-btn.active{color:#2962ff}
+    .tv-indicator-btn svg{width:14px;height:14px}
+    .tv-search-wrap{position:relative;margin:0 4px}
+    .tv-search-input{width:160px;height:28px;padding:0 10px 0 28px;background:#2a2e39;border:1px solid #363a45;border-radius:4px;color:#d1d4dc;font-family:inherit;font-size:12px;outline:none;transition:border-color .15s}
+    .tv-search-input:focus{border-color:#2962ff;width:220px}
+    .tv-search-input::placeholder{color:#787b86}
+    .tv-search-icon{position:absolute;left:8px;top:50%;transform:translateY(-50%);color:#787b86;font-size:13px;pointer-events:none}
+    .tv-search-results{position:absolute;top:34px;left:0;width:280px;max-height:320px;overflow-y:auto;background:#1e222d;border:1px solid #363a45;border-radius:6px;box-shadow:0 8px 32px rgba(0,0,0,0.5);z-index:200;display:none}
+    .tv-search-results.show{display:block}
+    .tv-search-item{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;cursor:pointer;transition:background .1s;border-bottom:1px solid #2a2e39}
+    .tv-search-item:last-child{border-bottom:none}
+    .tv-search-item:hover{background:#2a2e39}
+    .tv-search-item-sym{font-size:13px;font-weight:700;color:#d1d4dc}
+    .tv-search-item-name{font-size:11px;color:#787b86;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .tv-search-item-exchange{font-size:10px;color:#787b86}
+    .tv-session-btn{padding:3px 8px;background:transparent;border:1px solid transparent;color:#787b86;font-family:inherit;font-size:11px;font-weight:500;cursor:pointer;border-radius:4px;height:26px;display:flex;align-items:center;gap:4px;white-space:nowrap}
+    .tv-session-btn:hover{color:#d1d4dc;background:#2a2e39}
+    .tv-session-btn.active{border-color:currentColor}
+    .tv-session-btn.active[data-session="asia"]{color:#8b5cf6;background:rgba(139,92,246,0.1)}
+    .tv-session-btn.active[data-session="london"]{color:#3b82f6;background:rgba(59,130,246,0.1)}
+    .tv-session-btn.active[data-session="ny"]{color:#26a69a;background:rgba(38,166,154,0.1)}
+    .tv-session-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+
+    /* TV Main Layout (sidebar-chart-sidebar) */
+    .tv-main{display:flex;flex:1;min-height:0;overflow:hidden}
+
+    /* Left Toolbar */
+    .tv-left{width:48px;background:#1e222d;border-right:1px solid #2a2e39;display:flex;flex-direction:column;align-items:center;padding:8px 0;gap:2px;flex-shrink:0;overflow-y:auto;scrollbar-width:none}
+    .tv-left::-webkit-scrollbar{display:none}
+    .tv-tool-btn{width:38px;height:34px;display:flex;align-items:center;justify-content:center;background:transparent;border:none;color:#787b86;cursor:pointer;border-radius:4px;transition:all .1s;position:relative}
+    .tv-tool-btn:hover{color:#d1d4dc;background:#2a2e39}
+    .tv-tool-btn.active{color:#2962ff;background:rgba(41,98,255,0.12)}
+    .tv-tool-btn svg{width:18px;height:18px}
+    .tv-tool-sep{width:28px;height:1px;background:#2a2e39;margin:4px 0}
+
+    /* Chart Area */
+    .tv-chart-area{flex:1;display:flex;flex-direction:column;min-width:0;position:relative;background:#131722}
+    .tv-chart-container{flex:1;position:relative;min-height:0}
+    .tv-chart-info{position:absolute;top:10px;left:12px;z-index:10;display:flex;flex-direction:column;gap:2px;pointer-events:none}
+    .tv-chart-symbol{font-size:16px;font-weight:700;color:#d1d4dc;letter-spacing:.3px}
+    .tv-chart-ohlc{font-size:11px;display:flex;gap:10px;flex-wrap:wrap}
+    .tv-chart-ohlc span{display:flex;gap:3px}
+    .tv-chart-ohlc .ohlc-label{color:#787b86}
+    .tv-chart-ohlc .ohlc-val{font-weight:600}
+    .tv-chart-session-info{position:absolute;top:10px;right:270px;z-index:10;display:flex;gap:8px;pointer-events:none}
+    .tv-session-badge{padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;letter-spacing:.5px}
+
+    /* Bottom bar */
+    .tv-bottombar{display:flex;align-items:center;height:32px;background:#1e222d;border-top:1px solid #2a2e39;padding:0 8px;gap:1px;flex-shrink:0}
+    .tv-range-btn{padding:3px 12px;background:transparent;border:none;color:#787b86;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;border-radius:3px;height:24px}
+    .tv-range-btn:hover{color:#d1d4dc;background:#2a2e39}
+    .tv-range-btn.active{color:#2962ff;background:rgba(41,98,255,0.12)}
+    .tv-bottom-sep{width:1px;height:16px;background:#2a2e39;margin:0 4px}
+    .tv-bottom-info{margin-left:auto;font-size:11px;color:#787b86;display:flex;align-items:center;gap:12px}
+    .tv-bottom-price{font-weight:600}
+
+    /* Right Sidebar */
+    .tv-right{width:260px;background:#1e222d;border-left:1px solid #2a2e39;display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+    .tv-right-tabs{display:flex;border-bottom:1px solid #2a2e39;flex-shrink:0}
+    .tv-right-tab{flex:1;padding:8px 4px;background:transparent;border:none;color:#787b86;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;text-align:center;border-bottom:2px solid transparent;transition:all .15s}
+    .tv-right-tab:hover{color:#d1d4dc}
+    .tv-right-tab.active{color:#d1d4dc;border-bottom-color:#2962ff}
+    .tv-right-content{flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#363a45 transparent}
+    .tv-right-content::-webkit-scrollbar{width:5px}
+    .tv-right-content::-webkit-scrollbar-track{background:transparent}
+    .tv-right-content::-webkit-scrollbar-thumb{background:#363a45;border-radius:3px}
+
+    /* Watchlist items in right sidebar */
+    .tv-wl-item{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;cursor:pointer;transition:background .1s;border-bottom:1px solid rgba(42,46,57,0.5)}
+    .tv-wl-item:hover{background:#2a2e39}
+    .tv-wl-item.active{background:rgba(41,98,255,0.08);border-left:2px solid #2962ff}
+    .tv-wl-left{min-width:0}
+    .tv-wl-sym{font-size:12px;font-weight:700;color:#d1d4dc}
+    .tv-wl-name{font-size:10px;color:#787b86;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90px}
+    .tv-wl-right{text-align:right;flex-shrink:0}
+    .tv-wl-price{font-size:12px;font-weight:600;color:#d1d4dc}
+    .tv-wl-change{font-size:11px;font-weight:600}
+
+    /* Details panel in right sidebar */
+    .tv-detail-section{padding:12px}
+    .tv-detail-header{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+    .tv-detail-avatar{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+    .tv-detail-name{font-size:14px;font-weight:700;color:#d1d4dc}
+    .tv-detail-exchange{font-size:11px;color:#787b86}
+    .tv-detail-price-row{display:flex;align-items:baseline;gap:10px;margin-bottom:2px}
+    .tv-detail-price-big{font-size:24px;font-weight:800;color:#d1d4dc;letter-spacing:-.5px}
+    .tv-detail-change-badge{font-size:12px;font-weight:700;padding:2px 8px;border-radius:4px}
+    .tv-detail-premarket{font-size:11px;color:#787b86;margin-bottom:12px}
+    .tv-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#2a2e39;border-radius:6px;overflow:hidden;margin-bottom:12px}
+    .tv-detail-cell{background:#1e222d;padding:8px 10px}
+    .tv-detail-cell-label{font-size:9px;color:#787b86;text-transform:uppercase;letter-spacing:.5px;font-weight:500}
+    .tv-detail-cell-value{font-size:13px;font-weight:700;color:#d1d4dc;margin-top:2px}
+    .tv-detail-actions{display:flex;gap:6px;margin-bottom:12px}
+    .tv-buy-btn{flex:1;padding:8px;border:none;border-radius:4px;background:#26a69a;color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:opacity .15s}
+    .tv-buy-btn:hover{opacity:.85}
+    .tv-sell-btn{flex:1;padding:8px;border:none;border-radius:4px;background:#ef5350;color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:opacity .15s}
+    .tv-sell-btn:hover{opacity:.85}
+
+    /* Indicator Panel */
+    .tv-indicator-panel{display:none;position:absolute;top:42px;left:200px;width:280px;max-height:400px;background:#1e222d;border:1px solid #363a45;border-radius:6px;box-shadow:0 8px 32px rgba(0,0,0,0.5);z-index:200;overflow:hidden}
+    .tv-indicator-panel.show{display:block}
+    .tv-indicator-panel-header{padding:10px 14px;border-bottom:1px solid #2a2e39;font-size:13px;font-weight:700;color:#d1d4dc;display:flex;justify-content:space-between;align-items:center}
+    .tv-indicator-panel-close{background:none;border:none;color:#787b86;cursor:pointer;font-size:16px;padding:2px 6px;border-radius:4px}
+    .tv-indicator-panel-close:hover{color:#d1d4dc;background:#2a2e39}
+    .tv-indicator-list{max-height:340px;overflow-y:auto;padding:6px}
+    .tv-indicator-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:4px;cursor:pointer;transition:background .1s}
+    .tv-indicator-item:hover{background:#2a2e39}
+    .tv-indicator-item.active{background:rgba(41,98,255,0.12)}
+    .tv-indicator-icon{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+    .tv-indicator-info{min-width:0}
+    .tv-indicator-name{font-size:12px;font-weight:600;color:#d1d4dc}
+    .tv-indicator-desc{font-size:10px;color:#787b86}
+    .tv-indicator-toggle{margin-left:auto;width:32px;height:18px;border-radius:9px;border:none;cursor:pointer;position:relative;transition:background .2s}
+    .tv-indicator-toggle::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .2s}
+    .tv-indicator-toggle.on{background:#2962ff}
+    .tv-indicator-toggle.on::after{transform:translateX(14px)}
+    .tv-indicator-toggle.off{background:#363a45}
+
+    /* TV Responsive */
+    @media(max-width:900px){
+      .tv-right{width:200px}
+      .tv-left{width:40px}
+      .tv-tool-btn{width:32px;height:30px}
+      .tv-tool-btn svg{width:15px;height:15px}
+    }
+    @media(max-width:640px){
+      .tv-right{display:none}
+      .tv-left{display:none}
+      .tv-topbar{height:38px}
+      .tv-interval-btn{font-size:11px;padding:4px 8px}
+    }
   </style>
 </head>
 <body>
@@ -496,6 +651,7 @@
       <button class="main-tab" data-main="dashboard" onclick="switchMainTab('dashboard')">&#128202; Dashboard</button>
       <button class="main-tab" data-main="portfolio" onclick="switchMainTab('portfolio')">&#128188; Portfolio</button>
       <button class="main-tab" data-main="watchlist" onclick="switchMainTab('watchlist')">&#11088; Watchlist</button>
+      <button class="main-tab" data-main="tradingview" onclick="switchMainTab('tradingview')" style="background:linear-gradient(135deg,rgba(41,98,255,0.15),rgba(139,92,246,0.15));border-color:rgba(41,98,255,0.25)">&#128200; TradingView</button>
     </div>
 
     <!-- Homepage View -->
@@ -531,6 +687,138 @@
 
     <!-- Watchlist View -->
     <div class="watchlist-view" id="watchlistView"></div>
+  </div>
+
+  <!-- TradingView Full Layout (outside .page, fixed position) -->
+  <div class="tv-view" id="tvView">
+    <!-- Top Bar -->
+    <div class="tv-topbar">
+      <div class="tv-topbar-group">
+        <div class="tv-search-wrap">
+          <span class="tv-search-icon">&#128269;</span>
+          <input class="tv-search-input" id="tvSearchInput" type="text" placeholder="Symbol suchen..." autocomplete="off">
+          <div class="tv-search-results" id="tvSearchResults"></div>
+        </div>
+        <button class="tv-sym-btn" id="tvSymBtn" onclick="tvCycleSymbol()">
+          <span id="tvSymLabel">AAPL</span>
+          <span class="tv-sym-name" id="tvSymName">Apple Inc</span>
+        </button>
+      </div>
+      <div class="tv-topbar-group" id="tvIntervalGroup">
+        <button class="tv-interval-btn" data-iv="1m" onclick="tvSetInterval('1m')">1m</button>
+        <button class="tv-interval-btn" data-iv="2m" onclick="tvSetInterval('2m')">2m</button>
+        <button class="tv-interval-btn active" data-iv="5m" onclick="tvSetInterval('5m')">5m</button>
+        <button class="tv-interval-btn" data-iv="15m" onclick="tvSetInterval('15m')">15m</button>
+        <button class="tv-interval-btn" data-iv="30m" onclick="tvSetInterval('30m')">30m</button>
+        <button class="tv-interval-btn" data-iv="60m" onclick="tvSetInterval('60m')">1H</button>
+        <button class="tv-interval-btn" data-iv="1d" onclick="tvSetInterval('1d')">1D</button>
+        <button class="tv-interval-btn" data-iv="1wk" onclick="tvSetInterval('1wk')">1W</button>
+      </div>
+      <div class="tv-topbar-group">
+        <button class="tv-charttype-btn active" id="tvCandleBtn" onclick="tvSetChartType('candle')" title="Kerzen">
+          <svg viewBox="0 0 24 24"><rect x="10" y="2" width="4" height="6" rx="1"/><rect x="10" y="16" width="4" height="6" rx="1"/><rect x="8" y="6" width="8" height="12" rx="1"/></svg>
+        </button>
+        <button class="tv-charttype-btn" id="tvLineBtn" onclick="tvSetChartType('line')" title="Linie">
+          <svg viewBox="0 0 24 24"><path d="M3 17l5-5 4 4 9-11" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+      <div class="tv-topbar-group">
+        <button class="tv-indicator-btn" id="tvIndicatorBtn" onclick="tvToggleIndicatorPanel()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Indikatoren
+        </button>
+      </div>
+      <div class="tv-topbar-group">
+        <button class="tv-session-btn" data-session="asia" onclick="tvToggleSession('asia')"><span class="tv-session-dot" style="background:#8b5cf6"></span>Asia</button>
+        <button class="tv-session-btn" data-session="london" onclick="tvToggleSession('london')"><span class="tv-session-dot" style="background:#3b82f6"></span>London</button>
+        <button class="tv-session-btn" data-session="ny" onclick="tvToggleSession('ny')"><span class="tv-session-dot" style="background:#26a69a"></span>NY</button>
+      </div>
+    </div>
+    <!-- Indicator Panel (overlay) -->
+    <div class="tv-indicator-panel" id="tvIndicatorPanel">
+      <div class="tv-indicator-panel-header">Indikatoren <button class="tv-indicator-panel-close" onclick="tvToggleIndicatorPanel()">&times;</button></div>
+      <div class="tv-indicator-list">
+        <div class="tv-indicator-item" onclick="tvToggleInd('ema20')"><div class="tv-indicator-icon" style="background:rgba(255,152,0,0.12);color:#ff9800">E</div><div class="tv-indicator-info"><div class="tv-indicator-name">EMA 20</div><div class="tv-indicator-desc">Exponential Moving Average</div></div><button class="tv-indicator-toggle off" id="tvInd_ema20"></button></div>
+        <div class="tv-indicator-item" onclick="tvToggleInd('ema50')"><div class="tv-indicator-icon" style="background:rgba(33,150,243,0.12);color:#2196f3">E</div><div class="tv-indicator-info"><div class="tv-indicator-name">EMA 50</div><div class="tv-indicator-desc">Exponential Moving Average</div></div><button class="tv-indicator-toggle off" id="tvInd_ema50"></button></div>
+        <div class="tv-indicator-item" onclick="tvToggleInd('sma200')"><div class="tv-indicator-icon" style="background:rgba(156,39,176,0.12);color:#9c27b0">S</div><div class="tv-indicator-info"><div class="tv-indicator-name">SMA 200</div><div class="tv-indicator-desc">Simple Moving Average</div></div><button class="tv-indicator-toggle off" id="tvInd_sma200"></button></div>
+        <div class="tv-indicator-item" onclick="tvToggleInd('vwap')"><div class="tv-indicator-icon" style="background:rgba(0,150,136,0.12);color:#009688">V</div><div class="tv-indicator-info"><div class="tv-indicator-name">VWAP</div><div class="tv-indicator-desc">Volume Weighted Avg Price</div></div><button class="tv-indicator-toggle off" id="tvInd_vwap"></button></div>
+        <div class="tv-indicator-item" onclick="tvToggleInd('bbands')"><div class="tv-indicator-icon" style="background:rgba(233,30,99,0.12);color:#e91e63">B</div><div class="tv-indicator-info"><div class="tv-indicator-name">Bollinger Bands</div><div class="tv-indicator-desc">Volatility Bands (20,2)</div></div><button class="tv-indicator-toggle off" id="tvInd_bbands"></button></div>
+      </div>
+    </div>
+    <!-- Main area: left tools | chart | right sidebar -->
+    <div class="tv-main">
+      <!-- Left Toolbar -->
+      <div class="tv-left">
+        <button class="tv-tool-btn active" data-tool="crosshair" onclick="tvSetTool('crosshair')" title="Fadenkreuz">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+        </button>
+        <button class="tv-tool-btn" data-tool="trendline" onclick="tvSetTool('trendline')" title="Trendlinie">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="20" x2="20" y2="4"/></svg>
+        </button>
+        <button class="tv-tool-btn" data-tool="hline" onclick="tvSetTool('hline')" title="Horizontale Linie">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="12" x2="22" y2="12"/><circle cx="4" cy="12" r="1.5" fill="currentColor"/><circle cx="20" cy="12" r="1.5" fill="currentColor"/></svg>
+        </button>
+        <div class="tv-tool-sep"></div>
+        <button class="tv-tool-btn" data-tool="rect" onclick="tvSetTool('rect')" title="Rechteck">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="6" width="16" height="12" rx="1"/></svg>
+        </button>
+        <button class="tv-tool-btn" data-tool="fib" onclick="tvSetTool('fib')" title="Fibonacci">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="4" y1="4" x2="20" y2="4"/><line x1="4" y1="10" x2="20" y2="10" stroke-dasharray="4 2"/><line x1="4" y1="14" x2="20" y2="14" stroke-dasharray="4 2"/><line x1="4" y1="20" x2="20" y2="20"/></svg>
+        </button>
+        <button class="tv-tool-btn" data-tool="text" onclick="tvSetTool('text')" title="Text">
+          <svg viewBox="0 0 24 24" fill="currentColor"><text x="6" y="18" font-size="16" font-weight="700" font-family="sans-serif">T</text></svg>
+        </button>
+        <div class="tv-tool-sep"></div>
+        <button class="tv-tool-btn" data-tool="measure" onclick="tvSetTool('measure')" title="Messen">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 12h4m4 0h4m4 0h4"/><path d="M12 2v4m0 4v4m0 4v4"/></svg>
+        </button>
+        <button class="tv-tool-btn" onclick="tvZoomFit()" title="Zoom anpassen">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+        </button>
+        <div class="tv-tool-sep"></div>
+        <button class="tv-tool-btn" onclick="tvClearDrawings()" title="Zeichnungen l&ouml;schen">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+        </button>
+      </div>
+
+      <!-- Chart Area -->
+      <div class="tv-chart-area">
+        <div class="tv-chart-info">
+          <div class="tv-chart-symbol" id="tvChartSymLabel">AAPL</div>
+          <div class="tv-chart-ohlc" id="tvChartOHLC"></div>
+        </div>
+        <div class="tv-chart-container" id="tvFullChartContainer"></div>
+      </div>
+
+      <!-- Right Sidebar -->
+      <div class="tv-right">
+        <div class="tv-right-tabs">
+          <button class="tv-right-tab active" data-panel="watchlist" onclick="tvSwitchRightTab('watchlist')">Watchlist</button>
+          <button class="tv-right-tab" data-panel="details" onclick="tvSwitchRightTab('details')">Details</button>
+          <button class="tv-right-tab" data-panel="allstocks" onclick="tvSwitchRightTab('allstocks')">Alle</button>
+        </div>
+        <div class="tv-right-content" id="tvRightContent"></div>
+      </div>
+    </div>
+
+    <!-- Bottom Bar -->
+    <div class="tv-bottombar">
+      <button class="tv-range-btn" data-tvr="1d" onclick="tvSetRange('1d')">1T</button>
+      <button class="tv-range-btn active" data-tvr="5d" onclick="tvSetRange('5d')">5T</button>
+      <button class="tv-range-btn" data-tvr="1mo" onclick="tvSetRange('1mo')">1M</button>
+      <button class="tv-range-btn" data-tvr="3mo" onclick="tvSetRange('3mo')">3M</button>
+      <button class="tv-range-btn" data-tvr="6mo" onclick="tvSetRange('6mo')">6M</button>
+      <button class="tv-range-btn" data-tvr="ytd" onclick="tvSetRange('ytd')">YTD</button>
+      <button class="tv-range-btn" data-tvr="1y" onclick="tvSetRange('1y')">1J</button>
+      <button class="tv-range-btn" data-tvr="5y" onclick="tvSetRange('5y')">5J</button>
+      <button class="tv-range-btn" data-tvr="max" onclick="tvSetRange('max')">Alle</button>
+      <div class="tv-bottom-sep"></div>
+      <div class="tv-bottom-info">
+        <span id="tvBottomPrice"></span>
+        <span id="tvBottomChange"></span>
+        <span id="tvBottomTime"></span>
+      </div>
+    </div>
   </div>
 
   <div class="modal-overlay" id="modalOverlay"><div class="modal" id="modalContent"></div></div>
@@ -1040,6 +1328,21 @@ function switchMainTab(tab) {
   document.getElementById('dashboardView').className = tab === 'dashboard' ? 'dashboard-view' : 'dashboard-view hidden';
   document.getElementById('portfolioView').className = tab === 'portfolio' ? 'portfolio-view active' : 'portfolio-view';
   document.getElementById('watchlistView').className = tab === 'watchlist' ? 'watchlist-view active' : 'watchlist-view';
+  // TradingView mode
+  var tvEl = document.getElementById('tvView');
+  var pageEl = document.querySelector('.page');
+  var summEl = document.getElementById('summaryStrip');
+  if (tab === 'tradingview') {
+    tvEl.classList.add('active');
+    pageEl.style.display = 'none';
+    summEl.style.display = 'none';
+    tvInit();
+  } else {
+    tvEl.classList.remove('active');
+    pageEl.style.display = '';
+    summEl.style.display = '';
+    tvCleanup();
+  }
   if (tab === 'portfolio') renderPortfolio();
   if (tab === 'home') renderHomepage();
   if (tab === 'watchlist') renderWatchlist();
@@ -2540,6 +2843,582 @@ function renderWatchlist() {
       try { var d = JSON.parse(c.dataset.spark); drawSparkline(c, d, c.dataset.up === 'true'); } catch(e) {}
     });
   });
+}
+
+// ============================================================
+// TRADINGVIEW FULL-SCREEN LAYOUT ENGINE
+// ============================================================
+var tvState = {
+  symbol: 'AAPL',
+  interval: '5m',
+  range: '5d',
+  chartType: 'candle',
+  chart: null,
+  mainSeries: null,
+  volumeSeries: null,
+  resizer: null,
+  streamTimer: null,
+  rightTab: 'watchlist',
+  activeTool: 'crosshair',
+  sessions: { asia: false, london: false, ny: false },
+  indicators: { ema20: false, ema50: false, sma200: false, vwap: false, bbands: false },
+  indicatorSeries: {},
+  initialized: false,
+  lastData: null
+};
+
+// Interval-to-range mapping
+var TV_IV_RANGE = { '1m':'1d', '2m':'1d', '5m':'5d', '15m':'5d', '30m':'1mo', '60m':'6mo', '1d':'1y', '1wk':'5y' };
+
+function tvInit() {
+  if (!tvState.initialized) {
+    tvState.initialized = true;
+    // Setup search
+    var si = document.getElementById('tvSearchInput');
+    si.addEventListener('input', tvOnSearch);
+    si.addEventListener('focus', function() { tvOnSearch(); });
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.tv-search-wrap')) document.getElementById('tvSearchResults').classList.remove('show');
+    });
+  }
+  // Default to first watchlist item or AAPL
+  if (watchlist.length > 0 && !quotesCache[tvState.symbol]) tvState.symbol = watchlist[0];
+  tvRenderRightPanel();
+  tvLoadChart();
+}
+
+function tvCleanup() {
+  tvStopStream();
+  if (tvState.chart) { tvState.chart.remove(); tvState.chart = null; }
+  if (tvState.resizer) { tvState.resizer.disconnect(); tvState.resizer = null; }
+  tvState.mainSeries = null; tvState.volumeSeries = null; tvState.indicatorSeries = {};
+}
+
+// ---- Symbol Selection ----
+function tvSelectSymbol(sym) {
+  tvState.symbol = sym;
+  document.getElementById('tvSearchInput').value = '';
+  document.getElementById('tvSearchResults').classList.remove('show');
+  tvUpdateSymLabel();
+  tvLoadChart();
+  tvRenderRightPanel();
+}
+
+function tvUpdateSymLabel() {
+  var q = quotesCache[tvState.symbol];
+  document.getElementById('tvSymLabel').textContent = tvState.symbol;
+  document.getElementById('tvSymName').textContent = q ? (q.name || '') : '';
+  document.getElementById('tvChartSymLabel').textContent = tvState.symbol + (q ? ' \u00B7 ' + (q.exchange || '') : '');
+}
+
+function tvCycleSymbol() {
+  var idx = ALL_SYMBOLS.indexOf(tvState.symbol);
+  var next = ALL_SYMBOLS[(idx + 1) % ALL_SYMBOLS.length];
+  tvSelectSymbol(next);
+}
+
+function tvOnSearch() {
+  var val = document.getElementById('tvSearchInput').value.trim().toLowerCase();
+  var resultsEl = document.getElementById('tvSearchResults');
+  if (!val) {
+    // Show all symbols
+    var all = ALL_SYMBOLS.slice(0, 20);
+    var h = '';
+    all.forEach(function(sym) {
+      var q = quotesCache[sym];
+      h += '<div class="tv-search-item" onclick="tvSelectSymbol(\'' + sym + '\')">'
+        + '<div><div class="tv-search-item-sym">' + sym + '</div><div class="tv-search-item-name">' + (q ? q.name || '' : '') + '</div></div>'
+        + '<div class="tv-search-item-exchange">' + (q ? q.exchange || '' : '') + '</div></div>';
+    });
+    resultsEl.innerHTML = h;
+    resultsEl.classList.add('show');
+    return;
+  }
+  var matches = ALL_SYMBOLS.filter(function(sym) {
+    var q = quotesCache[sym];
+    return sym.toLowerCase().indexOf(val) >= 0 || (q && q.name && q.name.toLowerCase().indexOf(val) >= 0);
+  }).slice(0, 15);
+  if (matches.length === 0) {
+    resultsEl.innerHTML = '<div style="padding:12px;text-align:center;color:#787b86;font-size:12px">Keine Ergebnisse</div>';
+  } else {
+    var h = '';
+    matches.forEach(function(sym) {
+      var q = quotesCache[sym];
+      h += '<div class="tv-search-item" onclick="tvSelectSymbol(\'' + sym + '\')">'
+        + '<div><div class="tv-search-item-sym">' + sym + '</div><div class="tv-search-item-name">' + (q ? q.name || '' : '') + '</div></div>'
+        + '<div class="tv-search-item-exchange">' + (q ? q.exchange || '' : '') + '</div></div>';
+    });
+    resultsEl.innerHTML = h;
+  }
+  resultsEl.classList.add('show');
+}
+
+// ---- Interval / Range / ChartType ----
+function tvSetInterval(iv) {
+  tvState.interval = iv;
+  tvState.range = TV_IV_RANGE[iv] || '5d';
+  document.querySelectorAll('.tv-interval-btn').forEach(function(b) { b.classList.toggle('active', b.dataset.iv === iv); });
+  document.querySelectorAll('.tv-range-btn').forEach(function(b) { b.classList.toggle('active', b.dataset.tvr === tvState.range); });
+  tvLoadChart();
+}
+
+function tvSetRange(r) {
+  tvState.range = r;
+  // Auto-pick interval for range
+  var rangeIvMap = { '1d':'1m', '5d':'5m', '1mo':'30m', '3mo':'1d', '6mo':'1d', 'ytd':'1d', '1y':'1d', '5y':'1wk', 'max':'1wk' };
+  tvState.interval = rangeIvMap[r] || '1d';
+  document.querySelectorAll('.tv-range-btn').forEach(function(b) { b.classList.toggle('active', b.dataset.tvr === r); });
+  document.querySelectorAll('.tv-interval-btn').forEach(function(b) { b.classList.toggle('active', b.dataset.iv === tvState.interval); });
+  tvLoadChart();
+}
+
+function tvSetChartType(type) {
+  tvState.chartType = type;
+  document.getElementById('tvCandleBtn').classList.toggle('active', type === 'candle');
+  document.getElementById('tvLineBtn').classList.toggle('active', type === 'line');
+  tvLoadChart();
+}
+
+// ---- Tools ----
+function tvSetTool(tool) {
+  tvState.activeTool = tool;
+  document.querySelectorAll('.tv-tool-btn').forEach(function(b) {
+    if (b.dataset.tool) b.classList.toggle('active', b.dataset.tool === tool);
+  });
+}
+
+function tvZoomFit() {
+  if (tvState.chart) tvState.chart.timeScale().fitContent();
+}
+
+function tvClearDrawings() {
+  // Clear all indicator overlays
+  Object.keys(tvState.indicators).forEach(function(k) {
+    tvState.indicators[k] = false;
+    var el = document.getElementById('tvInd_' + k);
+    if (el) { el.classList.remove('on'); el.classList.add('off'); }
+  });
+  tvLoadChart();
+}
+
+// ---- Sessions ----
+function tvToggleSession(name) {
+  tvState.sessions[name] = !tvState.sessions[name];
+  document.querySelectorAll('.tv-session-btn').forEach(function(b) {
+    b.classList.toggle('active', tvState.sessions[b.dataset.session]);
+  });
+  tvLoadChart();
+}
+
+// ---- Indicators ----
+function tvToggleIndicatorPanel() {
+  document.getElementById('tvIndicatorPanel').classList.toggle('show');
+}
+
+function tvToggleInd(name) {
+  tvState.indicators[name] = !tvState.indicators[name];
+  var el = document.getElementById('tvInd_' + name);
+  if (el) { el.classList.toggle('on', tvState.indicators[name]); el.classList.toggle('off', !tvState.indicators[name]); }
+  tvApplyIndicators();
+}
+
+// ---- Right sidebar ----
+function tvSwitchRightTab(tab) {
+  tvState.rightTab = tab;
+  document.querySelectorAll('.tv-right-tab').forEach(function(b) { b.classList.toggle('active', b.dataset.panel === tab); });
+  tvRenderRightPanel();
+}
+
+function tvRenderRightPanel() {
+  var content = document.getElementById('tvRightContent');
+  if (!content) return;
+  if (tvState.rightTab === 'watchlist') {
+    tvRenderWatchlist(content);
+  } else if (tvState.rightTab === 'details') {
+    tvRenderDetails(content);
+  } else {
+    tvRenderAllStocks(content);
+  }
+}
+
+function tvRenderWatchlist(container) {
+  if (watchlist.length === 0) {
+    container.innerHTML = '<div style="padding:24px 12px;text-align:center;color:#787b86;font-size:12px">Watchlist ist leer.<br>Klicke &#9734; um Aktien hinzuzuf&uuml;gen.</div>';
+    return;
+  }
+  var h = '';
+  watchlist.forEach(function(sym) {
+    var q = quotesCache[sym];
+    var isActive = sym === tvState.symbol;
+    var up = q ? (q.changePercent || 0) >= 0 : true;
+    h += '<div class="tv-wl-item' + (isActive ? ' active' : '') + '" onclick="tvSelectSymbol(\'' + sym + '\')">'
+      + '<div class="tv-wl-left"><div class="tv-wl-sym">' + sym + '</div><div class="tv-wl-name">' + (q ? q.name || '' : '') + '</div></div>'
+      + '<div class="tv-wl-right"><div class="tv-wl-price">' + (q ? fmtP(q.price, q.currency) : '\u2013') + '</div>'
+      + '<div class="tv-wl-change" style="color:' + (up ? '#26a69a' : '#ef5350') + '">' + (q ? (up ? '+' : '') + (q.changePercent || 0).toFixed(2) + '%' : '') + '</div></div></div>';
+  });
+  container.innerHTML = h;
+}
+
+function tvRenderAllStocks(container) {
+  var h = '';
+  ALL_SYMBOLS.forEach(function(sym) {
+    var q = quotesCache[sym];
+    var isActive = sym === tvState.symbol;
+    var up = q ? (q.changePercent || 0) >= 0 : true;
+    h += '<div class="tv-wl-item' + (isActive ? ' active' : '') + '" onclick="tvSelectSymbol(\'' + sym + '\')">'
+      + '<div class="tv-wl-left"><div class="tv-wl-sym">' + sym + '</div><div class="tv-wl-name">' + (q ? q.name || '' : '') + '</div></div>'
+      + '<div class="tv-wl-right"><div class="tv-wl-price">' + (q ? fmtP(q.price, q.currency) : '\u2013') + '</div>'
+      + '<div class="tv-wl-change" style="color:' + (up ? '#26a69a' : '#ef5350') + '">' + (q ? (up ? '+' : '') + (q.changePercent || 0).toFixed(2) + '%' : '') + '</div></div></div>';
+  });
+  container.innerHTML = h;
+}
+
+function tvRenderDetails(container) {
+  var sym = tvState.symbol;
+  var q = quotesCache[sym];
+  if (!q) { container.innerHTML = '<div style="padding:20px;color:#787b86;text-align:center">Keine Daten</div>'; return; }
+  var up = (q.changePercent || 0) >= 0;
+  var cs = getDisplaySymbol(q.currency || 'USD');
+  var h = '<div class="tv-detail-section">';
+  h += '<div class="tv-detail-header"><div class="tv-detail-avatar" style="background:' + avatarBg(sym) + '">' + sym.slice(0, 2) + '</div>'
+    + '<div><div class="tv-detail-name">' + (q.name || sym) + '</div><div class="tv-detail-exchange">' + sym + ' \u00B7 ' + (q.exchange || '') + '</div></div></div>';
+  h += '<div class="tv-detail-price-row"><span class="tv-detail-price-big">' + cs + (convertToEur(q.price, q.currency) || 0).toFixed(2) + '</span>'
+    + '<span class="tv-detail-change-badge" style="background:' + (up ? 'rgba(38,166,154,0.15)' : 'rgba(239,83,80,0.15)') + ';color:' + (up ? '#26a69a' : '#ef5350') + '">'
+    + (up ? '+' : '') + (q.changePercent || 0).toFixed(2) + '%</span></div>';
+  if (q.marketState === 'PRE' && q.preMarketPrice) {
+    var pUp = (q.preMarketChangePercent || 0) >= 0;
+    h += '<div class="tv-detail-premarket">Pre-Market: <span style="color:' + (pUp ? '#26a69a' : '#ef5350') + '">' + fmtP(q.preMarketPrice, q.currency) + ' (' + (pUp ? '+' : '') + (q.preMarketChangePercent || 0).toFixed(2) + '%)</span></div>';
+  } else if ((q.marketState === 'POST' || q.marketState === 'POSTPOST') && q.postMarketPrice) {
+    var aUp = (q.postMarketChangePercent || 0) >= 0;
+    h += '<div class="tv-detail-premarket">After-Hours: <span style="color:' + (aUp ? '#26a69a' : '#ef5350') + '">' + fmtP(q.postMarketPrice, q.currency) + ' (' + (aUp ? '+' : '') + (q.postMarketChangePercent || 0).toFixed(2) + '%)</span></div>';
+  }
+  h += '<div class="tv-detail-actions"><button class="tv-buy-btn" onclick="openTradeDialog(\'' + sym + '\',\'buy\')">Kaufen</button>'
+    + '<button class="tv-sell-btn" onclick="openTradeDialog(\'' + sym + '\',\'sell\')">Verkaufen</button></div>';
+  h += '<div class="tv-detail-grid">'
+    + '<div class="tv-detail-cell"><div class="tv-detail-cell-label">Vortag</div><div class="tv-detail-cell-value">' + fmtP(q.previousClose, q.currency) + '</div></div>'
+    + '<div class="tv-detail-cell"><div class="tv-detail-cell-label">Tageshoch</div><div class="tv-detail-cell-value">' + fmtP(q.dayHigh, q.currency) + '</div></div>'
+    + '<div class="tv-detail-cell"><div class="tv-detail-cell-label">Tagestief</div><div class="tv-detail-cell-value">' + fmtP(q.dayLow, q.currency) + '</div></div>'
+    + '<div class="tv-detail-cell"><div class="tv-detail-cell-label">Volumen</div><div class="tv-detail-cell-value">' + fmt(q.volume) + '</div></div>'
+    + '<div class="tv-detail-cell"><div class="tv-detail-cell-label">MCap</div><div class="tv-detail-cell-value">' + fmt(q.marketCap) + '</div></div>'
+    + '<div class="tv-detail-cell"><div class="tv-detail-cell-label">52W Hoch</div><div class="tv-detail-cell-value">' + fmtP(q.fiftyTwoWeekHigh, q.currency) + '</div></div>'
+    + '<div class="tv-detail-cell"><div class="tv-detail-cell-label">52W Tief</div><div class="tv-detail-cell-value">' + fmtP(q.fiftyTwoWeekLow, q.currency) + '</div></div>'
+    + '<div class="tv-detail-cell"><div class="tv-detail-cell-label">50T \u00D8</div><div class="tv-detail-cell-value">' + fmtP(q.fiftyDayAverage, q.currency) + '</div></div>'
+    + '</div></div>';
+  container.innerHTML = h;
+}
+
+// ---- Chart Loading ----
+async function tvLoadChart() {
+  tvStopStream();
+  var sym = tvState.symbol;
+  var range = tvState.range;
+  var interval = tvState.interval;
+  tvUpdateSymLabel();
+  tvUpdateBottomInfo();
+
+  var container = document.getElementById('tvFullChartContainer');
+  if (!container) return;
+
+  var data = await fetchChartRange(sym, range, interval);
+  if (!data || !data.length) { container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#787b86">Keine Daten verf\u00FCgbar</div>'; return; }
+  tvState.lastData = data;
+
+  if (tvState.chart) { tvState.chart.remove(); tvState.chart = null; tvState.indicatorSeries = {}; }
+
+  var isIntra = ['1m','2m','5m','15m','30m','60m'].indexOf(interval) >= 0;
+  var h = container.clientHeight || 500;
+  var w = container.clientWidth || 800;
+
+  tvState.chart = LightweightCharts.createChart(container, {
+    width: w, height: h,
+    layout: { background: { type: 'solid', color: '#131722' }, textColor: '#787b86', fontFamily: 'Inter, -apple-system, sans-serif', fontSize: 11 },
+    grid: { vertLines: { color: '#1e222d' }, horzLines: { color: '#1e222d' } },
+    rightPriceScale: { borderColor: '#2a2e39', scaleMargins: { top: 0.02, bottom: 0.18 }, autoScale: true, alignLabels: true },
+    timeScale: { borderColor: '#2a2e39', timeVisible: isIntra, secondsVisible: false, rightOffset: 12, barSpacing: isIntra ? 3 : 6, minBarSpacing: 1 },
+    crosshair: { mode: LightweightCharts.CrosshairMode.Normal, vertLine: { color: '#758696', width: 1, style: LightweightCharts.LineStyle.Dashed, labelBackgroundColor: '#2962ff' }, horzLine: { color: '#758696', width: 1, style: LightweightCharts.LineStyle.Dashed, labelBackgroundColor: '#2962ff' } },
+    handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
+    handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
+    watermark: { visible: true, fontSize: 60, horzAlign: 'center', vertAlign: 'center', color: 'rgba(255,255,255,0.03)', text: sym }
+  });
+
+  var seen = {};
+  var chartData = data.map(function(d) {
+    var t = isIntra ? d.time : toChartTime(d.time, false);
+    if (!isIntra) { if (seen[t]) return null; seen[t] = true; }
+    return { time: t, open: d.open || d.close, high: d.high || d.close, low: d.low || d.close, close: d.close, volume: d.volume || 0, rawTime: d.time };
+  }).filter(function(d) { return d !== null; });
+
+  if (chartData.length === 0) return;
+
+  var isUp = chartData[chartData.length - 1].close >= chartData[0].close;
+
+  if (tvState.chartType === 'candle') {
+    tvState.mainSeries = tvState.chart.addCandlestickSeries({
+      upColor: '#26a69a', downColor: '#ef5350',
+      borderUpColor: '#26a69a', borderDownColor: '#ef5350',
+      wickUpColor: '#26a69a', wickDownColor: '#ef5350',
+      priceLineVisible: true, priceLineWidth: 1, priceLineColor: '#2962ff', priceLineStyle: LightweightCharts.LineStyle.Dashed,
+      lastValueVisible: true
+    });
+    tvState.mainSeries.setData(chartData.map(function(d) { return { time: d.time, open: d.open, high: d.high, low: d.low, close: d.close }; }));
+  } else {
+    tvState.mainSeries = tvState.chart.addAreaSeries({
+      lineColor: isUp ? '#26a69a' : '#ef5350', lineWidth: 2,
+      topColor: isUp ? 'rgba(38,166,154,0.28)' : 'rgba(239,83,80,0.28)',
+      bottomColor: isUp ? 'rgba(38,166,154,0.02)' : 'rgba(239,83,80,0.02)',
+      lastValueVisible: true, priceLineVisible: true, priceLineWidth: 1, priceLineColor: '#2962ff', priceLineStyle: LightweightCharts.LineStyle.Dashed,
+      crosshairMarkerVisible: true, crosshairMarkerRadius: 4
+    });
+    tvState.mainSeries.setData(chartData.map(function(d) { return { time: d.time, value: d.close }; }));
+  }
+
+  // Volume
+  tvState.volumeSeries = tvState.chart.addHistogramSeries({ priceFormat: { type: 'volume' }, priceScaleId: 'volume' });
+  tvState.chart.priceScale('volume').applyOptions({ scaleMargins: { top: 0.85, bottom: 0 } });
+  tvState.volumeSeries.setData(chartData.map(function(d) {
+    return { time: d.time, value: d.volume, color: (d.close >= d.open) ? 'rgba(38,166,154,0.5)' : 'rgba(239,83,80,0.5)' };
+  }));
+
+  tvState.chart.timeScale().fitContent();
+
+  // Resize observer
+  if (tvState.resizer) tvState.resizer.disconnect();
+  tvState.resizer = new ResizeObserver(function() {
+    if (tvState.chart && container.clientWidth > 0 && container.clientHeight > 0) {
+      tvState.chart.resize(container.clientWidth, container.clientHeight);
+    }
+  });
+  tvState.resizer.observe(container);
+
+  // OHLC crosshair subscribe
+  tvState.chart.subscribeCrosshairMove(function(param) {
+    tvUpdateOHLC(param, chartData);
+  });
+
+  // Session markers
+  if (isIntra) tvApplySessionMarkers(chartData);
+
+  // Indicators
+  tvApplyIndicators();
+
+  // Update bottom info
+  tvUpdateBottomInfo();
+
+  // Start streaming
+  tvStartStream();
+}
+
+// ---- OHLC Display ----
+function tvUpdateOHLC(param, chartData) {
+  var el = document.getElementById('tvChartOHLC');
+  if (!el) return;
+  if (!param || !param.time) {
+    if (chartData && chartData.length) {
+      var last = chartData[chartData.length - 1];
+      tvSetOHCLHtml(el, last);
+    }
+    return;
+  }
+  var bar = null;
+  if (param.seriesData && tvState.mainSeries) {
+    bar = param.seriesData.get(tvState.mainSeries);
+  }
+  if (bar) {
+    tvSetOHCLHtml(el, bar);
+  }
+}
+
+function tvSetOHCLHtml(el, d) {
+  var up = (d.close || d.value || 0) >= (d.open || d.value || 0);
+  var col = up ? '#26a69a' : '#ef5350';
+  if (d.open != null) {
+    el.innerHTML = '<span><span class="ohlc-label">O</span><span class="ohlc-val" style="color:' + col + '">' + (d.open || 0).toFixed(2) + '</span></span>'
+      + '<span><span class="ohlc-label">H</span><span class="ohlc-val" style="color:' + col + '">' + (d.high || 0).toFixed(2) + '</span></span>'
+      + '<span><span class="ohlc-label">L</span><span class="ohlc-val" style="color:' + col + '">' + (d.low || 0).toFixed(2) + '</span></span>'
+      + '<span><span class="ohlc-label">C</span><span class="ohlc-val" style="color:' + col + '">' + (d.close || 0).toFixed(2) + '</span></span>';
+  } else {
+    el.innerHTML = '<span><span class="ohlc-label">Price</span><span class="ohlc-val" style="color:' + col + '">' + (d.value || 0).toFixed(2) + '</span></span>';
+  }
+}
+
+// ---- Session Markers ----
+function tvApplySessionMarkers(chartData) {
+  if (!tvState.mainSeries || tvState.chartType !== 'candle') return;
+  var anySess = tvState.sessions.asia || tvState.sessions.london || tvState.sessions.ny;
+  if (!anySess) { tvState.mainSeries.setMarkers([]); return; }
+  var markers = [];
+  var sessFound = {};
+  chartData.forEach(function(d) {
+    var sn = getSessionName(d.rawTime);
+    if (!tvState.sessions[sn] || sessFound[sn]) return;
+    sessFound[sn] = true;
+    var col = sn === 'asia' ? '#8b5cf6' : sn === 'london' ? '#3b82f6' : '#26a69a';
+    markers.push({ time: d.time, position: 'aboveBar', color: col, shape: 'circle', text: sn === 'asia' ? 'A' : sn === 'london' ? 'L' : 'NY' });
+  });
+  markers.sort(function(a, b) { return a.time - b.time; });
+  tvState.mainSeries.setMarkers(markers);
+}
+
+// ---- Indicators ----
+function tvApplyIndicators() {
+  if (!tvState.chart || !tvState.lastData) return;
+  var data = tvState.lastData;
+  var closes = data.map(function(d) { return d.close; });
+  var isIntra = ['1m','2m','5m','15m','30m','60m'].indexOf(tvState.interval) >= 0;
+
+  // Remove old indicator series
+  Object.keys(tvState.indicatorSeries).forEach(function(k) {
+    try { tvState.chart.removeSeries(tvState.indicatorSeries[k]); } catch(e) {}
+  });
+  tvState.indicatorSeries = {};
+
+  // EMA 20
+  if (tvState.indicators.ema20 && closes.length >= 20) {
+    var ema20 = tvCalcEMA(closes, 20);
+    var s = tvState.chart.addLineSeries({ color: '#ff9800', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+    s.setData(ema20.map(function(v, i) { return { time: isIntra ? data[i].time : toChartTime(data[i].time, false), value: v }; }).filter(function(d) { return d.value !== null; }));
+    tvState.indicatorSeries.ema20 = s;
+  }
+  // EMA 50
+  if (tvState.indicators.ema50 && closes.length >= 50) {
+    var ema50 = tvCalcEMA(closes, 50);
+    var s2 = tvState.chart.addLineSeries({ color: '#2196f3', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+    s2.setData(ema50.map(function(v, i) { return { time: isIntra ? data[i].time : toChartTime(data[i].time, false), value: v }; }).filter(function(d) { return d.value !== null; }));
+    tvState.indicatorSeries.ema50 = s2;
+  }
+  // SMA 200
+  if (tvState.indicators.sma200 && closes.length >= 200) {
+    var sma200 = tvCalcSMA(closes, 200);
+    var s3 = tvState.chart.addLineSeries({ color: '#9c27b0', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+    s3.setData(sma200.map(function(v, i) { return { time: isIntra ? data[i].time : toChartTime(data[i].time, false), value: v }; }).filter(function(d) { return d.value !== null; }));
+    tvState.indicatorSeries.sma200 = s3;
+  }
+  // VWAP
+  if (tvState.indicators.vwap && isIntra) {
+    var vwap = tvCalcVWAP(data);
+    var s4 = tvState.chart.addLineSeries({ color: '#009688', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+    s4.setData(vwap.map(function(v, i) { return { time: data[i].time, value: v }; }).filter(function(d) { return d.value !== null; }));
+    tvState.indicatorSeries.vwap = s4;
+  }
+  // Bollinger Bands
+  if (tvState.indicators.bbands && closes.length >= 20) {
+    var bb = tvCalcBBands(closes, 20, 2);
+    var upper = tvState.chart.addLineSeries({ color: 'rgba(233,30,99,0.5)', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+    upper.setData(bb.upper.map(function(v, i) { return { time: isIntra ? data[i].time : toChartTime(data[i].time, false), value: v }; }).filter(function(d) { return d.value !== null; }));
+    var lower = tvState.chart.addLineSeries({ color: 'rgba(233,30,99,0.5)', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+    lower.setData(bb.lower.map(function(v, i) { return { time: isIntra ? data[i].time : toChartTime(data[i].time, false), value: v }; }).filter(function(d) { return d.value !== null; }));
+    var mid = tvState.chart.addLineSeries({ color: 'rgba(233,30,99,0.3)', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+    mid.setData(bb.mid.map(function(v, i) { return { time: isIntra ? data[i].time : toChartTime(data[i].time, false), value: v }; }).filter(function(d) { return d.value !== null; }));
+    tvState.indicatorSeries.bbands_upper = upper;
+    tvState.indicatorSeries.bbands_lower = lower;
+    tvState.indicatorSeries.bbands_mid = mid;
+  }
+}
+
+// ---- Indicator Calculations ----
+function tvCalcEMA(data, period) {
+  var result = new Array(data.length).fill(null);
+  if (data.length < period) return result;
+  var k = 2 / (period + 1);
+  var sum = 0;
+  for (var i = 0; i < period; i++) sum += data[i];
+  result[period - 1] = sum / period;
+  for (var j = period; j < data.length; j++) {
+    result[j] = data[j] * k + result[j - 1] * (1 - k);
+  }
+  return result;
+}
+
+function tvCalcSMA(data, period) {
+  var result = new Array(data.length).fill(null);
+  if (data.length < period) return result;
+  var sum = 0;
+  for (var i = 0; i < period; i++) sum += data[i];
+  result[period - 1] = sum / period;
+  for (var j = period; j < data.length; j++) {
+    sum += data[j] - data[j - period];
+    result[j] = sum / period;
+  }
+  return result;
+}
+
+function tvCalcVWAP(data) {
+  var result = [];
+  var cumVP = 0, cumV = 0;
+  data.forEach(function(d) {
+    var tp = ((d.high || d.close) + (d.low || d.close) + d.close) / 3;
+    var v = d.volume || 0;
+    cumVP += tp * v;
+    cumV += v;
+    result.push(cumV > 0 ? cumVP / cumV : null);
+  });
+  return result;
+}
+
+function tvCalcBBands(data, period, mult) {
+  var sma = tvCalcSMA(data, period);
+  var upper = new Array(data.length).fill(null);
+  var lower = new Array(data.length).fill(null);
+  for (var i = period - 1; i < data.length; i++) {
+    if (sma[i] === null) continue;
+    var sum = 0;
+    for (var j = i - period + 1; j <= i; j++) sum += Math.pow(data[j] - sma[i], 2);
+    var std = Math.sqrt(sum / period);
+    upper[i] = sma[i] + mult * std;
+    lower[i] = sma[i] - mult * std;
+  }
+  return { upper: upper, lower: lower, mid: sma };
+}
+
+// ---- Bottom Info ----
+function tvUpdateBottomInfo() {
+  var q = quotesCache[tvState.symbol];
+  var priceEl = document.getElementById('tvBottomPrice');
+  var changeEl = document.getElementById('tvBottomChange');
+  var timeEl = document.getElementById('tvBottomTime');
+  if (priceEl && q) {
+    priceEl.textContent = fmtP(q.price, q.currency);
+    priceEl.className = 'tv-bottom-price';
+  }
+  if (changeEl && q) {
+    var up = (q.changePercent || 0) >= 0;
+    changeEl.textContent = (up ? '+' : '') + (q.changePercent || 0).toFixed(2) + '%';
+    changeEl.style.color = up ? '#26a69a' : '#ef5350';
+  }
+  if (timeEl) timeEl.textContent = new Date().toLocaleTimeString('de-DE');
+}
+
+// ---- Streaming ----
+function tvStartStream() {
+  tvStopStream();
+  var isIntra = ['1m','2m','5m','15m','30m','60m'].indexOf(tvState.interval) >= 0;
+  if (!isIntra) return;
+  tvState.streamTimer = setInterval(function() {
+    if (currentMainTab !== 'tradingview' || !tvState.chart || !tvState.mainSeries) { tvStopStream(); return; }
+    var sym = tvState.symbol;
+    fetchChartRange(sym, tvState.range, tvState.interval).then(function(data) {
+      if (!data || !data.length || !tvState.mainSeries || !tvState.chart || tvState.symbol !== sym) return;
+      tvState.lastData = data;
+      var recent = data.slice(-3);
+      recent.forEach(function(d) {
+        var t = d.time;
+        if (tvState.chartType === 'candle') {
+          tvState.mainSeries.update({ time: t, open: d.open || d.close, high: d.high || d.close, low: d.low || d.close, close: d.close });
+        } else {
+          tvState.mainSeries.update({ time: t, value: d.close });
+        }
+        if (tvState.volumeSeries) {
+          tvState.volumeSeries.update({ time: t, value: d.volume || 0, color: ((d.close || 0) >= (d.open || d.close)) ? 'rgba(38,166,154,0.5)' : 'rgba(239,83,80,0.5)' });
+        }
+      });
+      tvUpdateBottomInfo();
+      tvRenderRightPanel();
+    }).catch(function() {});
+  }, 3000);
+}
+
+function tvStopStream() {
+  if (tvState.streamTimer) { clearInterval(tvState.streamTimer); tvState.streamTimer = null; }
 }
 
 // ============================================================
